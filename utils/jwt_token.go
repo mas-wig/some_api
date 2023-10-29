@@ -35,3 +35,7 @@ func CreateToken(ttl time.Duration, payload interface{}, priviteKey string) (str
 	}
 	return token, nil
 }
+
+func ValidateToken(token string, publicKey string) (interface{}, error) {
+	panic("Implement this shit....") // TODO: Implement this shit
+}
