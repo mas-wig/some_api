@@ -18,7 +18,7 @@ func NewAuthHandle(authService services.AuthService, userService services.UserSe
 	return AuthHandler{authService: authService, userService: userService}
 }
 
-func (ah *AuthHandler) SignUpUser(c *gin.Context) {
+func (a *AuthHandler) SignUpUser(c *gin.Context) {
 	var payload *types.RegisterInput
 	if err := c.ShouldBindJSON(&payload); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Bad Request", "message": err.Error()})
@@ -29,7 +29,7 @@ func (ah *AuthHandler) SignUpUser(c *gin.Context) {
 		return
 	}
 
-	newUser, err := ah.authService.RegisterUser(payload)
+	newUser, err := a.authService.RegisterUser(payload)
 	if err != nil {
 		if strings.Contains(err.Error(), "email already exist") {
 			c.JSON(http.StatusBadRequest, gin.H{"message": "Bad Request", "data": err.Error()})
