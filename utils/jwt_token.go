@@ -37,5 +37,29 @@ func CreateToken(ttl time.Duration, payload interface{}, priviteKey string) (str
 }
 
 func ValidateToken(token string, publicKey string) (interface{}, error) {
-	panic("Implement this shit....") // TODO: Implement this shit
+	decodePublicKey, err := base64.StdEncoding.DecodeString(publicKey)
+	if err != nil {
+		return nil, fmt.Errorf("could not decode public key %w", err)
+	}
+
+	key, err := jwt.ParseRSAPublicKeyFromPEM([]byte(decodePublicKey))
+	if err != nil {
+		return nil, fmt.Errorf("could not parse public key : %w", err)
+	}
+
+	parsedToken, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, fmt.Errorf("unexpected method : %s", t.Header["alg"])
+		}
+		return key, nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("validate : %w", err)
+	}
+
+	claims, ok := parsedToken.Claims.(jwt.MapClaims)
+	if !ok || !parsedToken.Valid {
+		return nil, fmt.Errorf("validate : invalid token")
+	}
+	return claims["sub"], nil
 }
