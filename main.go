@@ -49,7 +49,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Redis client conneted successfully.....")
+	fmt.Println("Redis client connected successfully.....")
 	server = gin.Default()
 }
 
