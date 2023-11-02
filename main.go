@@ -6,9 +6,13 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gin-gonic/contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
+	"github.com/mas-wig/post-api-1/api"
 	"github.com/mas-wig/post-api-1/config"
+	"github.com/mas-wig/post-api-1/routes"
+	"github.com/mas-wig/post-api-1/services"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -19,6 +23,15 @@ var (
 	ctx         context.Context
 	mongoClient *mongo.Client
 	redisClient *redis.Client
+
+	userServices      services.UserService
+	userHandler       api.UserHandler
+	userRoutesHandler routes.UserRoutesHandler
+
+	authCollection    *mongo.Collection
+	authServices      services.AuthService
+	authHandler       api.AuthHandler
+	authRoutesHandler routes.AuthRoutesHandler
 )
 
 func init() {
@@ -63,7 +76,17 @@ func main() {
 		panic(err)
 	}
 
+	server.Use(cors.New(cors.Config{
+		AllowedOrigins:   []string{"http://localhost:8080"},
+		AllowCredentials: true,
+		MaxAge:           0,
+	}))
+
 	router := server.Group("/api/")
+
+	authRoutesHandler.AuthRouters(router, userServices)
+	userRoutesHandler.UserRouters(router, userServices)
+
 	router.GET("healtchecker", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "success", "message": &value})
 	})
