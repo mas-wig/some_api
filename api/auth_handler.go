@@ -32,7 +32,6 @@ func (a *AuthHandler) SignUpUser(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Bad Request", "data": "password not match"})
 		return
 	}
-
 	newUser, err := a.authService.RegisterUser(credentials)
 	if err != nil {
 		if strings.Contains(err.Error(), "email already exist") {

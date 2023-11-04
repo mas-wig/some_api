@@ -7,18 +7,23 @@ import (
 )
 
 type Config struct {
-	MongoDBURL             string        `mapstructure:"MONGODB_URL"`
-	RedisURI               string        `mapstructure:"REDIS_URL"`
-	RedisPassword          string        `mapstructure:"REDIS_PASS"`
-	PORT                   string        `mapstructure:"PORT"`
+	EmailFrom              string        `mapstructure:"EMAIL_FROM"`
 	AccessTokenPrivateKey  string        `mapstructure:"ACCESS_TOKEN_PRIVATE_KEY"`
+	SMTPUser               string        `mapstructure:"SMTP_USER"`
+	PORT                   string        `mapstructure:"PORT"`
+	SMTPPass               string        `mapstructure:"SMTP_PASS"`
 	AccessTokenPublicKey   string        `mapstructure:"ACCESS_TOKEN_PUBLIC_KEY"`
 	RefreshTokenPrivateKey string        `mapstructure:"REFRESH_TOKEN_PRIVATE_KEY"`
+	SMTPHost               string        `mapstructure:"SMTP_HOST"`
+	RedisPassword          string        `mapstructure:"REDIS_PASS"`
+	RedisURI               string        `mapstructure:"REDIS_URL"`
 	RefreshTokenPublicKey  string        `mapstructure:"REFRESH_TOKEN_PUBLIC_KEY"`
-	AccessTokenExpiresIn   time.Duration `mapstructure:"ACCESS_TOKEN_EXPIRED_IN"`
-	RefreshTokenExpiresIn  time.Duration `mapstructure:"REFRESH_TOKEN_EXPIRED_IN"`
-	AccessTokenMaxAge      int           `mapstructure:"ACCESS_TOKEN_MAXAGE"`
+	MongoDBURL             string        `mapstructure:"MONGODB_URL"`
 	RefreshTokenMaxAge     int           `mapstructure:"REFRESH_TOKEN_MAXAGE"`
+	AccessTokenMaxAge      int           `mapstructure:"ACCESS_TOKEN_MAXAGE"`
+	RefreshTokenExpiresIn  time.Duration `mapstructure:"REFRESH_TOKEN_EXPIRED_IN"`
+	SMTPPort               int           `mapstructure:"SMTP_PORT"`
+	AccessTokenExpiresIn   time.Duration `mapstructure:"ACCESS_TOKEN_EXPIRED_IN"`
 }
 
 func LoadConfig(path string) (c *Config, err error) {

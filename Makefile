@@ -1,5 +1,5 @@
-build:
-	go build -o bin/app
+.PHOANY:
+	all
 
-run: build
-	./bin/app
+all:
+	go build -o bin/main main.go

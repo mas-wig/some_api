@@ -18,8 +18,8 @@ type AuthServiceImpl struct {
 	ctx        context.Context
 }
 
-func NewAuthServiceImpl(collection *mongo.Collection, ctx context.Context) AuthServiceImpl {
-	return AuthServiceImpl{collection: collection, ctx: ctx}
+func NewAuthServiceImpl(collection *mongo.Collection, ctx context.Context) *AuthServiceImpl {
+	return &AuthServiceImpl{collection: collection, ctx: ctx}
 }
 
 func (as *AuthServiceImpl) LoginUser(user *types.LoginInput) (*types.DBResponse, error) {
@@ -28,7 +28,7 @@ func (as *AuthServiceImpl) LoginUser(user *types.LoginInput) (*types.DBResponse,
 
 func (as *AuthServiceImpl) RegisterUser(user *types.RegisterInput) (*types.DBResponse, error) {
 	user.CreatedAt = time.Now()
-	user.UpdatedAt = time.Now()
+	user.UpdatedAt = user.CreatedAt
 	user.Email = strings.ToLower(user.Email)
 	user.PasswordConfirm = ""
 	user.Verified = true

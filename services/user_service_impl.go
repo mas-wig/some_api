@@ -15,8 +15,8 @@ type UserServiceImpl struct {
 	ctx        context.Context
 }
 
-func NewUserServiceImpl(collection *mongo.Collection, ctx context.Context) UserServiceImpl {
-	return UserServiceImpl{collection: collection, ctx: ctx}
+func NewUserServiceImpl(collection *mongo.Collection, ctx context.Context) *UserServiceImpl {
+	return &UserServiceImpl{collection: collection, ctx: ctx}
 }
 
 func (us *UserServiceImpl) FindUserByID(id string) (*types.DBResponse, error) {
