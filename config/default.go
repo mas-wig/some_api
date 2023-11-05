@@ -8,6 +8,7 @@ import (
 
 type Config struct {
 	EmailFrom              string        `mapstructure:"EMAIL_FROM"`
+	Origin                 string        `mapstructure:"ORIGIN"`
 	AccessTokenPrivateKey  string        `mapstructure:"ACCESS_TOKEN_PRIVATE_KEY"`
 	SMTPUser               string        `mapstructure:"SMTP_USER"`
 	PORT                   string        `mapstructure:"PORT"`
