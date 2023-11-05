@@ -5,6 +5,8 @@ import (
 	"crypto/tls"
 	"html/template"
 	"log"
+	"os"
+	"path/filepath"
 
 	"github.com/k3a/html2text"
 	"github.com/mas-wig/post-api-1/config"
@@ -18,13 +20,33 @@ type EmailData struct {
 	Subject   string
 }
 
-func SendEmail(user *types.DBResponse, data *EmailData, tmpl *template.Template, tmplName string) error {
-	config, _ := config.LoadConfig("..")
-
-	var body bytes.Buffer
-	if err := tmpl.ExecuteTemplate(&body, tmplName, &data); err != nil {
-		log.Fatal("could not find any template : %w", err)
+func ParseTemplateDir(dir string) (*template.Template, error) {
+	var paths []string
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			paths = append(paths, path)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
+	return template.ParseFiles(paths...)
+}
+
+func SendEmail(user *types.DBResponse, data *EmailData, tmplName string) error {
+	var body bytes.Buffer
+	config, _ := config.LoadConfig("..")
+	template, err := ParseTemplateDir("public/templates")
+	if err != nil {
+		log.Fatal("Could not parse template", err)
+	}
+
+	template = template.Lookup(tmplName)
+	template.Execute(&body, &data)
 
 	m := gomail.NewMessage()
 	m.SetHeader("From", config.EmailFrom)
