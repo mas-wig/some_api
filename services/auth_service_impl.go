@@ -45,15 +45,16 @@ func (as *AuthServiceImpl) RegisterUser(user *types.RegisterInput) (*types.DBRes
 		return nil, err
 	}
 
-	index := mongo.IndexModel{Keys: bson.M{"email": 1}, Options: options.Index().SetUnique(true)}
+	var (
+		newUser *types.DBResponse
+		index   = mongo.IndexModel{Keys: bson.M{"email": 1}, Options: options.Index().SetUnique(true)}
+		query   = bson.M{"_id": insert.InsertedID}
+	)
+
 	if _, err := as.collection.Indexes().CreateOne(as.ctx, index); err != nil {
 		return nil, errors.New("could not create index for this email")
 	}
 
-	var (
-		newUser *types.DBResponse
-		query   = bson.M{"_id": insert.InsertedID}
-	)
 	if err := as.collection.FindOne(as.ctx, query).Decode(&newUser); err != nil {
 		return nil, err
 	}

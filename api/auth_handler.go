@@ -25,36 +25,36 @@ func NewAuthHandle(authService services.AuthService, userService services.UserSe
 func (a *AuthHandler) SignUpUser(c *gin.Context) {
 	var credentials *types.RegisterInput
 	if err := c.ShouldBindJSON(&credentials); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Bad Request", "message": err.Error()})
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"status": "Bad Request", "message": err.Error()})
 		return
 	}
 	if credentials.Password != credentials.PasswordConfirm {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Bad Request", "data": "password not match"})
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"status": "Bad Request", "message": "password not match"})
 		return
 	}
 	newUser, err := a.authService.RegisterUser(credentials)
 	if err != nil {
 		if strings.Contains(err.Error(), "email already exist") {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Bad Request", "data": err.Error()})
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"status": "Bad Request", "message": err.Error()})
 			return
 		}
-		c.AbortWithStatusJSON(http.StatusBadGateway, gin.H{"status": "error", "message": err.Error()})
+		c.AbortWithStatusJSON(http.StatusBadGateway, gin.H{"status": "status", "message": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"message": "success", "data": newUser})
+	c.JSON(http.StatusCreated, gin.H{"status": "success", "message": newUser})
 }
 
 func (a *AuthHandler) SignInUser(c *gin.Context) {
 	var credentials *types.LoginInput
 	if err := c.ShouldBindJSON(&credentials); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Bad Request", "message": err.Error()})
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"status": "Bad Request", "message": err.Error()})
 		return
 	}
 
 	loginUser, err := a.userService.FindUserByEmail(credentials.Email)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Bad Request", "data": err.Error()})
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"status": "Bad Request", "message": err.Error()})
 			return
 		}
 		return
