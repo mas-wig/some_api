@@ -1,21 +1,27 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
+	"text/template"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mas-wig/post-api-1/config"
 	"github.com/mas-wig/post-api-1/services"
 	"github.com/mas-wig/post-api-1/types"
 	"github.com/mas-wig/post-api-1/utils"
+	"github.com/thanhpk/randstr"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type AuthHandler struct {
 	authService services.AuthService
 	userService services.UserService
+	ctx         context.Context
+	tmpl        *template.Template
+	collection  *mongo.Collection
 }
 
 func NewAuthHandle(authService services.AuthService, userService services.UserService) AuthHandler {
@@ -41,7 +47,33 @@ func (a *AuthHandler) SignUpUser(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadGateway, gin.H{"status": "status", "message": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"status": "success", "message": newUser})
+
+	config, _ := config.LoadConfig("..")
+
+	var (
+		randomCode = randstr.String(20)
+		codeVerify = utils.Encode(randomCode)
+	)
+	updateData := &types.UpdateInput{VerificationCode: codeVerify}
+	a.userService.UpdateUserByID(newUser.ID.Hex(), updateData)
+	firstName := newUser.Name
+
+	if strings.Contains(firstName, " ") {
+		firstName = strings.Split(firstName, " ")[1]
+	}
+
+	emailData := utils.EmailData{
+		URL:       config.Origin + "/verifyemail/" + randomCode,
+		FirstName: firstName,
+		Subject:   "Your account verification code",
+	}
+
+	err = utils.SendEmail(newUser, &emailData, "verification_code.html")
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadGateway, gin.H{"status": "success", "message": "There was an error sending email"})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"status": "success", "message": "We sent an email with a verification code to " + newUser.Email})
 }
 
 func (a *AuthHandler) SignInUser(c *gin.Context) {
