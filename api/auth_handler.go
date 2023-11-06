@@ -71,7 +71,7 @@ func (a *AuthHandler) SignUpUser(c *gin.Context) {
 	}
 
 	emailData := utils.EmailData{
-		URL:       config.Origin + "/verifyemail/" + randomCode,
+		URL:       config.Origin + "/api/auth/verify-email/" + randomCode,
 		FirstName: firstName,
 		Subject:   "Your account verification code",
 	}
@@ -198,7 +198,7 @@ func (a *AuthHandler) ForgotPassword(c *gin.Context) {
 		update             = bson.D{
 			{Key: "$set", Value: bson.D{
 				{Key: "resetPasswordToken", Value: passwordResetToken},
-				{Key: "ResetPasswordAt", Value: time.Now().Add(time.Minute * 15)},
+				{Key: "resetPasswordAt", Value: time.Now().Add(time.Minute * 15)},
 			}},
 		}
 	)
@@ -218,7 +218,7 @@ func (a *AuthHandler) ForgotPassword(c *gin.Context) {
 		firstName = strings.Split(firstName, " ")[1]
 	}
 	emailData := utils.EmailData{
-		URL:       config.Origin + "/resetpassword/" + resetTokenStr,
+		URL:       config.Origin + "/api/auth/reset-password/" + resetTokenStr,
 		FirstName: firstName,
 		Subject:   "Your password reset token - valid to 10m",
 	}
@@ -234,7 +234,7 @@ func (a *AuthHandler) ForgotPassword(c *gin.Context) {
 func (a *AuthHandler) ResetPassword(c *gin.Context) {
 	var (
 		credentials *types.ResetPasswordInput
-		param       = c.Param("resetToken")
+		param       = c.Params.ByName("resetToken")
 	)
 
 	if err := c.ShouldBindJSON(&credentials); err != nil {
@@ -248,10 +248,10 @@ func (a *AuthHandler) ResetPassword(c *gin.Context) {
 
 	hashedPassword, _ := utils.HashedPassword(credentials.Password)
 	var (
-		query          = bson.D{{Key: "passwordResetToken", Value: utils.Encode(param)}}
+		query          = bson.D{{Key: "resetPasswordToken", Value: utils.Encode(param)}}
 		updatePassword = bson.D{
 			{Key: "$set", Value: bson.D{{Key: "password", Value: hashedPassword}}},
-			{Key: "$unset", Value: bson.D{{Key: "passwordResetToken", Value: ""}, {Key: "passwordResetAt", Value: ""}}},
+			{Key: "$unset", Value: bson.D{{Key: "resetPasswordToken", Value: ""}, {Key: "resetPasswordAt", Value: ""}}},
 		}
 	)
 	result, err := a.collection.UpdateOne(a.ctx, query, updatePassword)
@@ -271,8 +271,8 @@ func (a *AuthHandler) ResetPassword(c *gin.Context) {
 
 func (a *AuthHandler) VerifyEmail(c *gin.Context) {
 	var (
-		param  = c.Param("verificationCode")
-		query  = bson.D{{Key: "verificationCode", Value: utils.Encode(param)}}
+		param  = utils.Encode(c.Params.ByName("verificationCode"))
+		query  = bson.D{{Key: "verificationCode", Value: param}}
 		update = bson.D{
 			{Key: "$set", Value: bson.D{{Key: "verified", Value: true}}},
 			{Key: "$unset", Value: bson.D{{Key: "verificationCode", Value: ""}}},
@@ -280,11 +280,11 @@ func (a *AuthHandler) VerifyEmail(c *gin.Context) {
 	)
 	result, err := a.collection.UpdateOne(a.ctx, query, update)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "success", "message": err.Error()})
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "Forbidden", "message": err.Error()})
 		return
 	}
 	if result.MatchedCount == 0 {
-		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "success", "message": "Could not verify email address"})
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "Forbidden", "message": "Could not verify email address"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Email verified successfully"})
