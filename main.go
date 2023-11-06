@@ -65,11 +65,14 @@ func init() {
 	fmt.Println("Redis client connected successfully.....")
 
 	authCollection = mongoClient.Database("some_api").Collection("users")
+
 	authServices = services.NewAuthServiceImpl(authCollection, ctx)
 	userServices = services.NewUserServiceImpl(authCollection, ctx)
-	authRoutesHandler = routes.NewAuthRoutesHandler(authHandler)
+
 	authHandler = api.NewAuthHandle(authServices, ctx, authCollection, userServices)
 	userHandler = api.NewUserHandler(userServices)
+
+	authRoutesHandler = routes.NewAuthRoutesHandler(authHandler)
 	userRoutesHandler = routes.NewUserRoutesHandler(userHandler)
 
 	server = gin.Default()
