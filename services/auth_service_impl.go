@@ -32,12 +32,9 @@ func (as *AuthServiceImpl) RegisterUser(user *types.RegisterInput) (*types.DBRes
 	user.UpdatedAt = user.CreatedAt
 	user.Email = strings.ToLower(user.Email)
 	user.PasswordConfirm = ""
-	user.Verified = true
+	user.Verified = false
 	user.Role = "user"
 	user.Password = hashedPass
-	// user.ResetPasswordAt = time.Now()
-	// user.VerificationCode = ""
-	// user.ResetPasswordToken = ""
 	insert, err := as.collection.InsertOne(as.ctx, &user)
 	if err != nil {
 		if err, ok := err.(mongo.WriteException); ok && err.WriteConcernError.Code == 11000 {
