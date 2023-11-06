@@ -18,5 +18,8 @@ func (r *AuthRoutesHandler) AuthRouters(rg *gin.RouterGroup, userServices servic
 	router.POST("register", r.authHandler.SignUpUser)
 	router.POST("login", r.authHandler.SignInUser)
 	router.GET("refresh-token", r.authHandler.RefreshAccessToken)
+	router.GET("verifyemail/:verificationCode", r.authHandler.VerifyEmail)
 	router.GET("logout", middleware.DeserializeUser(userServices), r.authHandler.LogoutUser)
+	router.PATCH("resetpassword/:resetToken", r.authHandler.ResetPassword)
+	router.POST("forgotpassword", r.authHandler.ForgotPassword)
 }
