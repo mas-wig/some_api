@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"text/template"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -22,12 +21,18 @@ type AuthHandler struct {
 	authService services.AuthService
 	userService services.UserService
 	ctx         context.Context
-	tmpl        *template.Template
 	collection  *mongo.Collection
 }
 
-func NewAuthHandle(authService services.AuthService, userService services.UserService) AuthHandler {
-	return AuthHandler{authService: authService, userService: userService}
+func NewAuthHandle(authService services.AuthService, ctx context.Context,
+	collection *mongo.Collection, userService services.UserService,
+) AuthHandler {
+	return AuthHandler{
+		authService: authService,
+		userService: userService,
+		ctx:         ctx,
+		collection:  collection,
+	}
 }
 
 func (a *AuthHandler) SignUpUser(c *gin.Context) {
@@ -103,7 +108,6 @@ func (a *AuthHandler) SignInUser(c *gin.Context) {
 	}
 
 	config, _ := config.LoadConfig("..")
-
 	accessToken, err := utils.CreateToken(config.AccessTokenExpiresIn, loginUser.ID, config.AccessTokenPrivateKey)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
@@ -156,20 +160,24 @@ func (a *AuthHandler) LogoutUser(c *gin.Context) {
 	c.SetCookie("access_token", "", -1, "/", "localhost", false, true)
 	c.SetCookie("refresh_token", "", -1, "/", "localhost", false, true)
 	c.SetCookie("logged_in", "", -1, "/", "localhost", false, true)
-	c.JSON(http.StatusOK, gin.H{"status": "success"})
+	c.JSON(http.StatusOK, gin.H{"status": "log out success"})
 }
 
 func (a *AuthHandler) ForgotPassword(c *gin.Context) {
 	var credentials *types.ForgotPasswordInput
 	if err := c.ShouldBindJSON(&credentials); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Bad Request", "message": err.Error()})
+		c.AbortWithStatusJSON(http.StatusBadRequest,
+			gin.H{"error": "Bad Request", "message": err.Error()})
 		return
 	}
 	user, err := a.userService.FindUserByEmail(credentials.Email)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			c.AbortWithStatusJSON(http.StatusNotFound,
-				gin.H{"status": "Not Found", "message": "You will receive email if user with that email exist"})
+				gin.H{
+					"status":  "Not Found",
+					"message": "You will receive email if user with that email exist",
+				})
 			return
 		}
 		c.AbortWithStatusJSON(http.StatusBadGateway,
@@ -194,10 +202,12 @@ func (a *AuthHandler) ForgotPassword(c *gin.Context) {
 			}},
 		}
 	)
+
 	config, _ := config.LoadConfig("..")
 	result, err := a.collection.UpdateOne(a.ctx, query, update)
 	if result.MatchedCount == 0 {
-		c.AbortWithStatusJSON(http.StatusBadGateway, gin.H{"status": "failed", "message": "There was an error sending email"})
+		c.AbortWithStatusJSON(http.StatusBadGateway,
+			gin.H{"status": "failed", "message": "There was an error sending email"})
 		return
 	}
 	if err != nil {
@@ -214,8 +224,68 @@ func (a *AuthHandler) ForgotPassword(c *gin.Context) {
 	}
 	err = utils.SendEmail(user, &emailData, "reset_password.html")
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusBadGateway, gin.H{"status": "failed", "message": "There was an error sending emial"})
+		c.AbortWithStatusJSON(http.StatusBadGateway,
+			gin.H{"status": "failed", "message": "There was an error sending email"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Check your email"})
+}
+
+func (a *AuthHandler) ResetPassword(c *gin.Context) {
+	var (
+		credentials *types.ResetPasswordInput
+		param       = c.Param("resetToken")
+	)
+
+	if err := c.ShouldBindJSON(&credentials); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"status": "Bad Request", "message": err.Error()})
+		return
+	}
+	if credentials.Password != credentials.PasswordConfirm {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"status": "Bad Request", "message": "password not match.."})
+		return
+	}
+
+	hashedPassword, _ := utils.HashedPassword(credentials.Password)
+	var (
+		query          = bson.D{{Key: "passwordResetToken", Value: utils.Encode(param)}}
+		updatePassword = bson.D{
+			{Key: "$set", Value: bson.D{{Key: "password", Value: hashedPassword}}},
+			{Key: "$unset", Value: bson.D{{Key: "passwordResetToken", Value: ""}, {Key: "passwordResetAt", Value: ""}}},
+		}
+	)
+	result, err := a.collection.UpdateOne(a.ctx, query, updatePassword)
+	if result.MatchedCount == 0 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"status": "Bad request", "message": "token invalid or has been expired"})
+		return
+	}
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "Forbidden", "message": err.Error()})
+		return
+	}
+	c.SetCookie("access_token", "", -1, "/", "localhost", false, true)
+	c.SetCookie("refresh_token", "", -1, "/", "localhost", false, true)
+	c.SetCookie("logged_in", "", -1, "/", "localhost", false, true)
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Password has been update"})
+}
+
+func (a *AuthHandler) VerifyEmail(c *gin.Context) {
+	var (
+		param  = c.Param("verificationCode")
+		query  = bson.D{{Key: "verificationCode", Value: utils.Encode(param)}}
+		update = bson.D{
+			{Key: "$set", Value: bson.D{{Key: "verified", Value: true}}},
+			{Key: "$unset", Value: bson.D{{Key: "verificationCode", Value: ""}}},
+		}
+	)
+	result, err := a.collection.UpdateOne(a.ctx, query, update)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "success", "message": err.Error()})
+		return
+	}
+	if result.MatchedCount == 0 {
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "success", "message": "Could not verify email address"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Email verified successfully"})
 }
