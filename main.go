@@ -67,10 +67,11 @@ func init() {
 	authCollection = mongoClient.Database("some_api").Collection("users")
 	authServices = services.NewAuthServiceImpl(authCollection, ctx)
 	userServices = services.NewUserServiceImpl(authCollection, ctx)
-	authHandler = api.NewAuthHandle(authServices, userServices)
 	authRoutesHandler = routes.NewAuthRoutesHandler(authHandler)
+	authHandler = api.NewAuthHandle(authServices, ctx, authCollection, userServices)
 	userHandler = api.NewUserHandler(userServices)
 	userRoutesHandler = routes.NewUserRoutesHandler(userHandler)
+
 	server = gin.Default()
 }
 
