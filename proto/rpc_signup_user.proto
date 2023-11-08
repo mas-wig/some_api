@@ -2,9 +2,9 @@ syntax = "proto3";
 
 package pb;
 
-option go_package = "github.com/mas-wig/post-api-1/pb";
-
 import "user.proto";
+
+option go_package = "github.com/mas-wig/post-api-1/pb";
 
 message SignUpUserInput{
     string name = 1;
