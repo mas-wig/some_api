@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 
 	"github.com/gin-gonic/contrib/cors"
@@ -11,11 +12,15 @@ import (
 	"github.com/go-redis/redis"
 	"github.com/mas-wig/post-api-1/api"
 	"github.com/mas-wig/post-api-1/config"
+	"github.com/mas-wig/post-api-1/gapi"
+	"github.com/mas-wig/post-api-1/pb"
 	"github.com/mas-wig/post-api-1/routes"
 	"github.com/mas-wig/post-api-1/services"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 var (
@@ -78,7 +83,7 @@ func init() {
 	server = gin.Default()
 }
 
-func main() {
+func startGinServer() {
 	config, _ := config.LoadConfig(".")
 	value, err := redisClient.Get("test").Result()
 
@@ -103,6 +108,35 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"status": "success", "message": &value})
 	})
 
-	defer mongoClient.Disconnect(ctx)
 	log.Fatal(server.Run(":" + config.PORT))
+}
+
+func startGRPCServer(config config.Config) {
+	server, err := gapi.NewGRPCSever(config, authServices, userServices, authCollection)
+	if err != nil {
+		log.Fatal("cannot create grpc server : %w", err)
+	}
+	grpcServer := grpc.NewServer()
+	pb.RegisterAuthServiceServer(grpcServer, server)
+	reflection.Register(grpcServer)
+
+	listener, err := net.Listen("tcp", config.GRPCServerAddress)
+	if err != nil {
+		log.Fatal("cannot create grpc server : %w", err)
+	}
+	log.Printf("start grpc server on %s", listener.Addr().String())
+	err = grpcServer.Serve(listener)
+	if err != nil {
+		log.Fatal("cannot create grpc server: ", err)
+	}
+}
+
+func main() {
+	config, err := config.LoadConfig(".")
+	if err != nil {
+		log.Fatal("could not find env file in this path directory")
+	}
+	defer mongoClient.Disconnect(ctx)
+	// startGinServer()
+	startGRPCServer(config)
 }

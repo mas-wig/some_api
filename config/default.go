@@ -7,33 +7,34 @@ import (
 )
 
 type Config struct {
+	SMTPHost               string        `mapstructure:"SMTP_HOST"`
+	GRPCServerAddress      string        `mapstructure:"GRPC_SERVER_ADDRESS"`
 	EmailFrom              string        `mapstructure:"EMAIL_FROM"`
-	Origin                 string        `mapstructure:"ORIGIN"`
-	AccessTokenPrivateKey  string        `mapstructure:"ACCESS_TOKEN_PRIVATE_KEY"`
 	SMTPUser               string        `mapstructure:"SMTP_USER"`
 	PORT                   string        `mapstructure:"PORT"`
 	SMTPPass               string        `mapstructure:"SMTP_PASS"`
 	AccessTokenPublicKey   string        `mapstructure:"ACCESS_TOKEN_PUBLIC_KEY"`
 	RefreshTokenPrivateKey string        `mapstructure:"REFRESH_TOKEN_PRIVATE_KEY"`
-	SMTPHost               string        `mapstructure:"SMTP_HOST"`
-	RedisPassword          string        `mapstructure:"REDIS_PASS"`
-	RedisURI               string        `mapstructure:"REDIS_URL"`
+	AccessTokenPrivateKey  string        `mapstructure:"ACCESS_TOKEN_PRIVATE_KEY"`
+	Origin                 string        `mapstructure:"ORIGIN"`
 	RefreshTokenPublicKey  string        `mapstructure:"REFRESH_TOKEN_PUBLIC_KEY"`
+	RedisURI               string        `mapstructure:"REDIS_URL"`
 	MongoDBURL             string        `mapstructure:"MONGODB_URL"`
-	RefreshTokenMaxAge     int           `mapstructure:"REFRESH_TOKEN_MAXAGE"`
+	RedisPassword          string        `mapstructure:"REDIS_PASS"`
 	AccessTokenMaxAge      int           `mapstructure:"ACCESS_TOKEN_MAXAGE"`
 	RefreshTokenExpiresIn  time.Duration `mapstructure:"REFRESH_TOKEN_EXPIRED_IN"`
 	SMTPPort               int           `mapstructure:"SMTP_PORT"`
 	AccessTokenExpiresIn   time.Duration `mapstructure:"ACCESS_TOKEN_EXPIRED_IN"`
+	RefreshTokenMaxAge     int           `mapstructure:"REFRESH_TOKEN_MAXAGE"`
 }
 
-func LoadConfig(path string) (c *Config, err error) {
+func LoadConfig(path string) (c Config, err error) {
 	viper.AddConfigPath(path)
 	viper.SetConfigFile("env")
 	viper.SetConfigName("app")
 	viper.AutomaticEnv()
 	if err = viper.ReadInConfig(); err != nil {
-		return nil, err
+		return Config{}, err
 	}
 	err = viper.Unmarshal(&c)
 	return
