@@ -26,7 +26,7 @@ import (
 var (
 	server      *gin.Engine
 	ctx         context.Context
-	mongoClient *mongo.Client
+	     mongoClient *mongo.Client
 	redisClient *redis.Client
 
 	userServices      services.UserService
